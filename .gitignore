@@ -3,6 +3,8 @@ dg
 pr
 readn
 writen
+ictest
+ic.test
 *.o
 *~
 

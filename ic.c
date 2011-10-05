@@ -1,4 +1,4 @@
-/*
+/* vim: set ts=2 sw=2:
  * =====================================================================================
  *
  *       Filename:  ic.c
@@ -11,7 +11,7 @@
  *       Compiler:  gcc
  *
  *         Author:  Peter Meszaros (pme), hauptadler@gmail.com
- *        Company:  
+ *        Company:  Infalk Co.
  *
  * =====================================================================================
  *
@@ -27,6 +27,7 @@
  * 
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
  */
 
 #include <stdlib.h>
@@ -39,15 +40,12 @@
 #include <fcntl.h>
 #include <string.h>
 
+#include "ic.h"
+
 struct filebuf {
   int items;
   int fd;
   char *buf;
-};
-
-
-enum errcode {
-  IC_OK,
 };
 
 struct ic {
@@ -55,10 +53,12 @@ struct ic {
   int itemsize;
   int nitem;
   char *path;
-  enum errcode err;
+  int err;
   struct filebuf fb[];
 };
 
+/* internal prototype */
+static ssize_t writen(int fd, const void *vptr, size_t n);
 
 /* Write "n" bytes to a descriptor. */
 static ssize_t writen(int fd, const void *vptr, size_t n)
@@ -111,7 +111,9 @@ ssize_t ICflush(struct ic *ic, int fd)
 {
   size_t s;
 
-  if ((s = writen(ic->fb[fd].fd, ic->fb[fd].buf, ic->fb[fd].items * ic->itemsize)) == -1) return -1;
+  if ((s = writen(ic->fb[fd].fd, ic->fb[fd].buf, ic->fb[fd].items * ic->itemsize)) == -1) {
+    return IC_ERROR;
+  }
   ic->fb[fd].items = 0;
 
   return s;
@@ -122,7 +124,7 @@ int ICflushall(struct ic *ic)
   int i;
 
   for(i=0; i<ic->nfiles; i++) {
-    if (ICflush(ic, i) == -1) break;
+    if (ICflush(ic, i) == IC_ERROR) break;
   }
   return i;
 }
@@ -138,7 +140,7 @@ int ICdrop(struct ic *ic)
   }
   free(ic);
 
-  return 0;
+  return IC_OK;
 }
 
 int ICadd(struct ic *ic, int fd, char *item)
@@ -147,5 +149,35 @@ int ICadd(struct ic *ic, int fd, char *item)
   ic->fb[fd].items++;
   
   if (ic->fb[fd].items == ic->nitem) ICflush(ic, fd);
-  return 0;
+  return IC_OK;
 }
+
+void ICprintcache(FILE *f, struct ic *ic, int data)
+{
+  int i;
+
+	fprintf(f, "at: %p nfiles: %d\nitemsize: %d\nnitem: %d\npath: '%s'\nerr: %d\n",
+      ic, 
+			ic->nfiles,
+			ic->itemsize,
+			ic->nitem,
+			ic->path,
+			ic->err);
+
+  for (i=0; i<ic->nfiles; i++) {
+		fprintf(f, "%4d items: %d fd: %d\n", i,
+				ic->fb[i].items,
+				ic->fb[i].fd);
+    if (data) {
+      int j, k;
+
+			for (j=0; j<ic->fb[i].items; j++) {
+				fprintf(f, "%4d:", j);
+				for (k=0; k<ic->itemsize; k++)
+					fprintf(f, " %02X", (unsigned char)(ic->fb[i].buf[ic->itemsize*j+k]));
+				fprintf(f, "\n");
+			}
+    }
+  }
+}
+    
