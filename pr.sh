@@ -14,9 +14,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-if [ ! -p df ]
-then
+if [ ! -p df ]; then
   mkfifo df
 fi
 
-./pr df
+./pr $1 df

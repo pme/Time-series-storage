@@ -1,4 +1,4 @@
-/*
+/* vim: set ts=2 sw=2:
  * =====================================================================================
  *
  *       Filename:  dg.c
@@ -11,7 +11,7 @@
  *       Compiler:  gcc
  *
  *         Author:  Peter Meszaros (pme), hauptadler@gmail.com
- *        Company:  
+ *        Company:  Infalk Co.
  *
  * =====================================================================================
  *
@@ -31,7 +31,7 @@
  * =====================================================================================
  */
 
-#define _XOPEN_SOURCE
+#define _XOPEN_SOURCE	500
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -41,27 +41,42 @@
 #include <err.h>
 #include <string.h>
 #include <math.h>
+#include <string.h>
+
+char **idname;
 
 void usage(int argc, char *argv[])
 {
-	errx(EXIT_FAILURE, "Usage: %s [-i id] [-f from] [-t to] [-s step in microsec]\n", basename(argv[0]));
+	errx(EXIT_FAILURE, "Usage: %s [-f from] [-t to] [-s step in microsec] [-S state]\n\
+    id(s) will be read from stdin\n", basename(argv[0]));
+}
+
+int readids(void)
+{
+	int idcnt = 0;
+	char line[1024];
+
+	while ((fgets(line, 1024, stdin)) != NULL) {
+		if (line[0] == '#') continue;
+		idname = (char **)realloc(idname, (idcnt+1) * sizeof(char *));
+		line[strlen(line)-1] = '\0';
+		idname[idcnt++] = strdup(line);
+	}
+	return idcnt;
 }
 
 int main(int argc, char *argv[])
 {
-	int opt;
-  char *id = NULL, *fm = NULL, *to = NULL;
+	int i, opt, idnum = 0;
+  char *fm = NULL, *to = NULL;
 	double st = -1.0;
   struct tm frtm, totm;
   struct timeval frtv, totv;
   double t;
   int s = 0;
 
-	while ((opt = getopt(argc, argv, "i:f:t:s:S:h")) != -1) {
+	while ((opt = getopt(argc, argv, "f:t:s:S:h")) != -1) {
 		switch (opt) {
-			case 'i':
-				id = optarg;
-				break;
 			case 'f':
 				fm = optarg;
 				break;
@@ -80,10 +95,14 @@ int main(int argc, char *argv[])
 		}
 	}
 
-  if (id == NULL || fm == NULL || to == NULL || st < 0.0)
+	idnum = readids();
+
+  if (idnum == 0 || fm == NULL || to == NULL || st < 0.0)
 		usage(argc, argv);
 
-	warnx("id: '%s' from: '%s' to: '%s' step: '%f'microsec\n", id, fm, to, st);
+	for(i=0; i<idnum; i++)
+		fprintf(stderr, "id[%5d] == '%s'\n", i, idname[i]);
+	fprintf(stderr, "from: '%s' to: '%s' step: '%f'microsec\n", fm, to, st);
 
   memset(&frtm, 0, sizeof(struct tm));
   strptime(fm, "%Y-%m-%d %T", &frtm);
@@ -103,9 +122,15 @@ int main(int argc, char *argv[])
   t = frtv.tv_sec;
   st /= 1000000.0;
   while(t < totv.tv_sec) {
-    printf("%s|%.6f|%+.3f|%x\n", id, t, sin(t)+cos(t), s);
+		for(i=0; i<idnum; i++)
+      printf("%s|%.6f|%+.3f|%x\n", idname[i], t, sin(t)+cos(t), s);
     t += st;
   }
+
+	for(i=0; i<idnum; i++)
+		free(idname[i]);
+
+	free(idname);
 
   return 0;
 }

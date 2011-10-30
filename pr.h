@@ -1,12 +1,12 @@
 /* vim: set ts=2 sw=2:
  * =====================================================================================
  *
- *       Filename:  ic.h
+ *       Filename:  pr.h
  *
- *    Description:  ItemCache header -- I/O buffering for time series data
+ *    Description:  Pipe reader
  *
  *        Version:  1.0
- *        Created:  2011-07-31 19:28
+ *        Created:  2011-07-16 22:43
  *       Revision:  none
  *       Compiler:  gcc
  *
@@ -28,27 +28,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
+ * =====================================================================================
  */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <limits.h>
-#include <time.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <string.h>
+struct m {
+	char id[16+1];
+	struct timeval ts;
+	float val;
+	uint8_t stat;
+} __attribute__ ((__packed__));
 
-#define  IC_ERROR	-1
-#define  IC_OK		0
 
-typedef struct ic *IC;
-typedef void (*print_t)(FILE *, char *);
-
-struct ic * ICcreate(int nfiles, int itemsize, int nitem, char *path);
-ssize_t ICflush(struct ic *ic, int fd);
-int ICflushall(struct ic *ic);
-int ICdrop(struct ic *ic);
-int ICadd(struct ic *ic, int fd, char *item);
-void ICprintcache(FILE *f, struct ic *ic, int data, print_t printfunc);

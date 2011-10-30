@@ -1,10 +1,13 @@
 tags
+data
 dg
 pr
+rd
 readn
 writen
 ictest
 ic.test
 *.o
+*.out
 *~
 

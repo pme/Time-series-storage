@@ -14,4 +14,5 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-./dg -i "hehe haha" -f "2011-01-02 13:43:00" -t "2011-01-02 13:45:00" -s 133000 -S 123
+#echo "hehe haha" | ./dg -f "2011-01-02 13:43:00" -t "2011-01-02 13:45:00" -s 133000 -S 123
+./dg -f "2011-01-02 13:43:00" -t "2011-01-02 13:45:00" -s 133000 -S 123 <ids

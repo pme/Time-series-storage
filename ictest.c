@@ -57,6 +57,18 @@ struct test_item {
   uint8_t state;
 };
 
+void printtestitem(FILE  *f, char *item)
+{
+  struct test_item *ti = (struct test_item *)item;
+
+	fprintf(f, "ti: %u %06ld.%06ld %f 0x%02X\n",
+			ti->id,
+			ti->ts.tv_sec,
+			ti->ts.tv_usec,
+			ti->value,
+			ti->state);
+}
+
 int main(int argc, char *argv[])
 {
   int delete, opt;
@@ -91,9 +103,10 @@ int main(int argc, char *argv[])
 		ti.state = i+1;
 
 		ICadd(ic, i % FILES, (char *)&ti);
-	}
 
-  ICprintcache(stdout, ic, 1);
+    if ((i % FILES) == 0)
+      ICprintcache(stdout, ic, 1, printtestitem);
+	}
 
   ICdrop(ic);
 

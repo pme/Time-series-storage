@@ -145,14 +145,14 @@ int ICdrop(struct ic *ic)
 
 int ICadd(struct ic *ic, int fd, char *item)
 {
-  memcpy(ic->fb[fd].buf + ic->fb[fd].items, item, ic->itemsize);
+  memcpy(ic->fb[fd].buf + (ic->fb[fd].items * ic->itemsize), item, ic->itemsize);
   ic->fb[fd].items++;
   
   if (ic->fb[fd].items == ic->nitem) ICflush(ic, fd);
   return IC_OK;
 }
 
-void ICprintcache(FILE *f, struct ic *ic, int data)
+void ICprintcache(FILE *f, struct ic *ic, int data, print_t printfunc)
 {
   int i;
 
@@ -169,14 +169,11 @@ void ICprintcache(FILE *f, struct ic *ic, int data)
 				ic->fb[i].items,
 				ic->fb[i].fd);
     if (data) {
-      int j, k;
+      int j;
 
-			for (j=0; j<ic->fb[i].items; j++) {
-				fprintf(f, "%4d:", j);
-				for (k=0; k<ic->itemsize; k++)
-					fprintf(f, " %02X", (unsigned char)(ic->fb[i].buf[ic->itemsize*j+k]));
-				fprintf(f, "\n");
-			}
+			if (printfunc)
+				for (j=0; j<ic->fb[i].items; j++)
+					printfunc(f, ic->fb[i].buf+(ic->itemsize*j));
     }
   }
 }
