@@ -50,6 +50,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <sys/file.h>
 
 #include "pr.h"
 #include "mh.h"
@@ -65,10 +66,15 @@ char *topattern;
 
 void printm(FILE *f, struct m *m)
 {
-	fprintf(f, "'%s' %9ld.%-9ld %10.3f 0x%03x\n",
+	char ts[64+1];
+
+	strftime(ts, 64, "%Y-%m-%d %T", gmtime(&m->ts.tv_sec));
+
+	fprintf(f, "'%s' %9ld.%06ld '%s.%06ld' %10.3f 0x%03x\n",
 			m->id,
 			m->ts.tv_sec,
 			m->ts.tv_usec,
+			ts, m->ts.tv_usec,
 			m->val,
 			m->stat);
 }
@@ -145,9 +151,21 @@ void dumpfile(FILE *out, char *fname, char *id)
   snprintf(path, 132, PATH "/%s", fname);
   fd = open(path, O_RDONLY);
 
+#ifdef USE_FLOCK
+  if (flock(fd, LOCK_SH) < 0) {
+    return;
+	}
+#endif
+
   while (readn(fd, &m, sizeof(m))) {
-    printm(out, &m);
+		if (!strcmp(id, m.id)) printm(out, &m);
   }
+
+#ifdef USE_FLOCK
+  if (flock(fd, LOCK_UN) < 0) {
+    return;
+	}
+#endif
 
   close(fd);
 }

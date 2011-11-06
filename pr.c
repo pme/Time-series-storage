@@ -53,11 +53,17 @@
 #define FILES 256
 #define CACHE_SIZE 20
 
-int sig;
+int sigflush;
+int sigopen;
 
-void sighandler(int signum)
+void alarmhandler(int signum)
 {
-  sig = signum;
+  sigflush = signum;
+}
+
+void openhandler(int signum)
+{
+  sigopen = signum;
 }
 
 struct m * lineparser(char *line)
@@ -79,7 +85,7 @@ void printm(FILE *f, char *data)
 { 
 	struct m *m = (struct m *)data;
 
-	fprintf(f, "'%s' %9ld.%-9ld %10.3f 0x%03x\n",
+	fprintf(f, "'%s' %9ld.%06ld %10.3f 0x%03x\n",
 			m->id,
 			m->ts.tv_sec,
 			m->ts.tv_usec,
@@ -121,8 +127,10 @@ int main (int argc, char *argv[])
 	if ((f = fopen(pn, "rw+")) == NULL)
 		err(EXIT_FAILURE, "fopen(%s)", pn);
 
-	signal(SIGALRM, sighandler);
+	signal(SIGALRM, alarmhandler);
 	alarm(1);
+
+	signal(SIGUSR1, openhandler);
 
   if (mkdir(PATH, 0755) == -1 && errno != EEXIST)
     err(EXIT_FAILURE, "mkdir(%s)", PATH);
@@ -140,21 +148,33 @@ int main (int argc, char *argv[])
 			m = lineparser(buf);
 			if (trace) printm(stdout, (char *)m);
 
-		  i = ICadd(ic, hash(m->id), (char *)&m);
+		  i = ICadd(ic, hash(m->id), (char *)m);
 
-      ICprintcache(stderr, ic, 1, printm);
+      if (trace) ICprintcache(stderr, ic, 1, printm);
 
 		} else if (l == NULL && errno == EINTR) {
-			if (sig) {
-        time_t t = time(NULL);
+      time_t t = time(NULL);
 
-				if (trace) fprintf(stdout, "signal: %d %s", sig, ctime(&t));
+			if (sigflush) {
+
+				if (trace) fprintf(stdout, "signal: %d %s", sigflush, ctime(&t));
 
         i = ICflushall(ic);
 
-				sig = 0;
-				signal(SIGALRM, sighandler);
+				sigflush = 0;
+				signal(SIGALRM, alarmhandler);
 				alarm(1);
+			}
+
+			if (sigopen) {
+
+				if (trace) fprintf(stdout, "signal: %d %s", sigopen, ctime(&t));
+
+        i = ICdrop(ic);
+        ic = ICcreate(FILES, sizeof(struct m), CACHE_SIZE, PATH);
+
+				sigopen = 0;
+				signal(SIGUSR1, openhandler);
 			}
 		}
 	}

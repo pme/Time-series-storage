@@ -39,6 +39,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <string.h>
+#include <sys/file.h>
 
 #include "ic.h"
 
@@ -111,9 +112,22 @@ ssize_t ICflush(struct ic *ic, int fd)
 {
   size_t s;
 
+#ifdef USE_FLOCK
+  if (flock(ic->fb[fd].fd, LOCK_EX) < 0) {
+    return IC_ERROR;
+	}
+#endif
+
   if ((s = writen(ic->fb[fd].fd, ic->fb[fd].buf, ic->fb[fd].items * ic->itemsize)) == -1) {
     return IC_ERROR;
   }
+
+#ifdef USE_FLOCK
+  if (flock(ic->fb[fd].fd, LOCK_UN) < 0) {
+    return IC_ERROR;
+	}
+#endif
+
   ic->fb[fd].items = 0;
 
   return s;
@@ -149,6 +163,8 @@ int ICadd(struct ic *ic, int fd, char *item)
   ic->fb[fd].items++;
   
   if (ic->fb[fd].items == ic->nitem) ICflush(ic, fd);
+  //if (ic->fb[fd].items == ic->nitem) ICflushall(ic);
+
   return IC_OK;
 }
 

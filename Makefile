@@ -31,8 +31,8 @@
 # =====================================================================================
 #
 
-PROGRAMS = dg pr
-CFLAGS = -Wall -g -lm
+PROGRAMS = dg pr rd
+CFLAGS = -Wall -g -lm -DUSE_FLOCK
 
 .PHONY: all tags clean
 
@@ -48,4 +48,6 @@ clean:
 dg: dg.c
 
 pr: pr.c ic.c mh.c
+
+rd: rd.c mh.c
 

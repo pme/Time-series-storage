@@ -14,4 +14,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-time -p ./dg -n 27000 -s 133000 -S 255 <ids 
+#./rd -i $1 -f "2011-01-02 13:43:00" -t "2011-01-02 14:43:00"
+#./rd -i $1 -f "2011-01-02 13:43:00" -t "2011-01-02 14:43:00"
+./rd -i 00Jigqdb0KzK -f "2011-11-06 00:19:00" -t "2011-11-07 00:20:00"

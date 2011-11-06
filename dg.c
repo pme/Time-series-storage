@@ -47,7 +47,7 @@ char **idname;
 
 void usage(int argc, char *argv[])
 {
-	errx(EXIT_FAILURE, "Usage: %s [-f from] [-t to] [-s step in microsec] [-S state]\n\
+	errx(EXIT_FAILURE, "Usage: %s [-n number of time] [-s step in microsec] [-S state]\n\
     id(s) will be read from stdin\n", basename(argv[0]));
 }
 
@@ -68,20 +68,17 @@ int readids(void)
 int main(int argc, char *argv[])
 {
 	int i, opt, idnum = 0;
-  char *fm = NULL, *to = NULL;
 	double st = -1.0;
   struct tm frtm, totm;
   struct timeval frtv, totv;
   double t;
-  int s = 0;
+  int s = 0, n = 0;
+	char to[64], fm[64];
 
-	while ((opt = getopt(argc, argv, "f:t:s:S:h")) != -1) {
+	while ((opt = getopt(argc, argv, "n:s:S:h")) != -1) {
 		switch (opt) {
-			case 'f':
-				fm = optarg;
-				break;
-			case 't':
-				to = optarg;
+			case 'n':
+				n = atoi(optarg);
 				break;
 			case 's':
 				st = atof(optarg);
@@ -97,27 +94,24 @@ int main(int argc, char *argv[])
 
 	idnum = readids();
 
-  if (idnum == 0 || fm == NULL || to == NULL || st < 0.0)
+  if (idnum == 0 || n == 0 || st < 0.0)
 		usage(argc, argv);
+
+  gettimeofday(&frtv, NULL);
+
+  memcpy(&frtm, gmtime(&frtv.tv_sec), sizeof(frtm));
+  strftime(fm, sizeof(fm), "%Y-%m-%d %T", &frtm);
+
+	totv.tv_sec  = frtv.tv_sec + (n * st / 1000000.0);
+  totv.tv_usec = 0;
+
+  memcpy(&totm, gmtime(&totv.tv_sec), sizeof(totm));
+  strftime(to, sizeof(to), "%Y-%m-%d %T", &totm);
 
 	for(i=0; i<idnum; i++)
 		fprintf(stderr, "id[%5d] == '%s'\n", i, idname[i]);
-	fprintf(stderr, "from: '%s' to: '%s' step: '%f'microsec\n", fm, to, st);
-
-  memset(&frtm, 0, sizeof(struct tm));
-  strptime(fm, "%Y-%m-%d %T", &frtm);
-  frtv.tv_sec = mktime(&frtm);
-  frtv.tv_usec = 0;
-
-  memset(&totm, 0, sizeof(struct tm));
-  strptime(to, "%Y-%m-%d %T", &totm);
-  totv.tv_sec = mktime(&totm);
-  totv.tv_usec = 0;
-
-  /*
-  printf("fr: %s", ctime(&frtv.tv_sec));
-  printf("to: %s", ctime(&totv.tv_sec));
-  */
+	fprintf(stderr, "from: '%s.%06ld' to: '%s.%06ld' step: '%f'microsec %d times\n",
+			fm, frtv.tv_usec, to, totv.tv_usec, st, n);
 
   t = frtv.tv_sec;
   st /= 1000000.0;
