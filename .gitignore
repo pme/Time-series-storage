@@ -10,4 +10,7 @@ ic.test
 *.o
 *.out
 *~
+core*
+g.dat
+.gdbinit
 
