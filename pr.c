@@ -44,6 +44,7 @@
 #include <sys/time.h>
 #include <stdint.h>
 #include <string.h>
+#include <assert.h>
 
 #include "pr.h"
 #include "ic.h"
@@ -101,7 +102,7 @@ int main (int argc, char *argv[])
 	char buf[PIPE_BUF];
 	char *l;
   struct ic *ic;
-  int i;
+	int s;
 
 	trace = 0;
 	while ((opt = getopt(argc, argv, "th")) != -1) {
@@ -136,8 +137,10 @@ int main (int argc, char *argv[])
     err(EXIT_FAILURE, "mkdir(%s)", PATH);
 
   ic = ICcreate(FILES, sizeof(struct m), CACHE_SIZE, PATH);
+	assert(ic);
 
-	while(1) {
+	while (1) {
+
 		if ((l = fgets(buf, PIPE_BUF, f))) {
 			struct m *m;
 
@@ -148,7 +151,8 @@ int main (int argc, char *argv[])
 			m = lineparser(buf);
 			if (trace) printm(stdout, (char *)m);
 
-		  i = ICadd(ic, hash(m->id), (char *)m);
+		  s = ICadd(ic, hash(m->id), (char *)m);
+			assert(s == IC_OK);
 
       if (trace) ICprintcache(stderr, ic, 1, printm);
 
@@ -159,7 +163,8 @@ int main (int argc, char *argv[])
 
 				if (trace) fprintf(stdout, "signal: %d %s", sigflush, ctime(&t));
 
-        i = ICflushall(ic);
+        s = ICflushall(ic);
+			  assert(s == IC_OK);
 
 				sigflush = 0;
 				signal(SIGALRM, alarmhandler);
@@ -170,16 +175,22 @@ int main (int argc, char *argv[])
 
 				if (trace) fprintf(stdout, "signal: %d %s", sigopen, ctime(&t));
 
-        i = ICdrop(ic);
+        s = ICdrop(ic);
+			  assert(s == IC_OK);
+
         ic = ICcreate(FILES, sizeof(struct m), CACHE_SIZE, PATH);
+			  assert(ic);
 
 				sigopen = 0;
 				signal(SIGUSR1, openhandler);
 			}
+		} else {
+			break; /* while (1) */
 		}
 	}
 
-  i = ICdrop(ic);
+  s = ICdrop(ic);
+	assert(s == IC_OK);
 
 	return 0;
 }

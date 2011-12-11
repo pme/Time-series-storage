@@ -140,7 +140,7 @@ int ICflushall(struct ic *ic)
   for(i=0; i<ic->nfiles; i++) {
     if (ICflush(ic, i) == IC_ERROR) break;
   }
-  return i;
+  return i == ic->nfiles ? IC_OK : i;
 }
 
 int ICdrop(struct ic *ic)

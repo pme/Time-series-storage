@@ -32,7 +32,8 @@
 #
 
 PROGRAMS = dg pr rd
-CFLAGS = -Wall -g -lm -DUSE_FLOCK
+CFLAGS = -Wall -g -DUSE_FLOCK
+LDFLAGS = -lm
 
 .PHONY: all tags clean
 
@@ -44,10 +45,12 @@ tags:
 clean:
 	rm -f $(PROGRAMS) *.o *~ df
 
-
 dg: dg.c
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 pr: pr.c ic.c mh.c
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 rd: rd.c mh.c
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
