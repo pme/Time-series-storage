@@ -51,6 +51,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/file.h>
+#include <assert.h>
 
 #include "pr.h"
 #include "mh.h"
@@ -60,6 +61,7 @@
 #define CACHE_SIZE 20
 #define PATTERN_LEN 32
 
+int verbose;
 char idpattern[PATTERN_LEN+1];
 char *fmpattern;
 char *topattern;
@@ -70,7 +72,7 @@ void printm(FILE *f, struct m *m)
 
 	strftime(ts, 64, "%Y-%m-%d %T", gmtime(&m->ts.tv_sec));
 
-	fprintf(f, "'%s' %9ld.%06ld '%s.%06ld' %10.3f 0x%03x\n",
+	fprintf(f, "%s|%9ld.%06ld|%s.%06ld|%10.3f|0x%03x\n",
 			m->id,
 			m->ts.tv_sec,
 			m->ts.tv_usec,
@@ -81,25 +83,7 @@ void printm(FILE *f, struct m *m)
 
 int filter(const struct dirent *de)
 {
-  const char *s = de->d_name;
-
-  /* fprintf(stderr, "f: '%s' id: '%s' fm: '%s' to: '%s' --> ", s, idpattern, fmpattern, topattern); */
-
-  if (strstr(s, idpattern) == NULL) { /* other channel (file) or */
-    /* fprintf(stderr, "OTHER\n"); */
-    return 0;
-  }
-  if (strcmp(s, fmpattern) == -1)    { /* older or */
-    /* fprintf(stderr, "OLDER\n"); */
-    return 0;
-  }
-  if (strcmp(s, topattern) ==  +1)    { /* newer */
-    /* fprintf(stderr, "NEWER\n"); */
-    return 0;
-  }
-  /* fprintf(stderr, "OK\n"); */
-
-  return 1;
+  return (strstr(de->d_name, idpattern) == NULL) ? 0 : 1;
 }
 
 char *space2underline(char *s)
@@ -115,7 +99,8 @@ char *space2underline(char *s)
 
 void usage(int argc, char *argv[])
 {
-	fprintf(stderr, "Usage: %s [-i id] [-f from] [-t to]\n", basename(argv[0]));
+	fprintf(stderr, "Usage: %s [-v] [-i id] [-f from] [-t to]\n", basename(argv[0]));
+	fprintf(stderr, "\t-v - Verbose\n");
 	fprintf(stderr, "\t-i - Channel identifier\n");
 	fprintf(stderr, "\t-f - from timestamp\n");
 	fprintf(stderr, "\t-t - to timestamp\n");
@@ -142,7 +127,7 @@ ssize_t readn(int fd, void *vptr, size_t n)
 	return n - nleft;		/* return >= 0 */
 }
 
-void dumpfile(FILE *out, char *fname, char *id)
+void dumpfile(FILE *out, char *fname, char *id, time_t fts, time_t tts)
 {
   int fd;
   struct m m;
@@ -150,35 +135,49 @@ void dumpfile(FILE *out, char *fname, char *id)
 
   snprintf(path, 132, PATH "/%s", fname);
   fd = open(path, O_RDONLY);
+	assert(fd != -1);
 
 #ifdef USE_FLOCK
   if (flock(fd, LOCK_SH) < 0) {
+		fprintf(stderr, "get shared lock failure\n");
+    close(fd);
     return;
 	}
 #endif
 
   while (readn(fd, &m, sizeof(m))) {
-		if (!strcmp(id, m.id)) printm(out, &m);
+		if (!strcmp(id, m.id) &&
+			m.ts.tv_sec >= fts &&
+			m.ts.tv_sec <= tts) printm(out, &m);
   }
 
 #ifdef USE_FLOCK
   if (flock(fd, LOCK_UN) < 0) {
-    return;
+		fprintf(stderr, "release shared lock failure\n");
 	}
 #endif
 
   close(fd);
 }
 
+time_t strtimetotv(char *strtime)
+{
+	struct tm tm;
+
+	strptime(strtime, "%Y-%m-%d_%T", &tm);
+	return timegm(&tm);
+}
+
 int main (int argc, char *argv[])
 {
   int opt;
   char *id = NULL, *fm = NULL, *to = NULL;
+	time_t fts, tts;
   struct dirent **de = NULL;
   int dn, i, idhash;
 
 	to = fm = 0;
-	while ((opt = getopt(argc, argv, "i:f:t:h")) != -1) {
+	while ((opt = getopt(argc, argv, "i:f:t:vh")) != -1) {
 		switch (opt) {
 			case 'i':
 				id = optarg;
@@ -188,6 +187,9 @@ int main (int argc, char *argv[])
 				break;
 			case 'f':
 				fm = optarg;
+				break;
+			case 'v':
+				verbose = 1;
 				break;
 			default: /* '?' */
         usage(argc, argv);
@@ -204,14 +206,42 @@ int main (int argc, char *argv[])
   fmpattern = space2underline(fm);
   topattern = space2underline(to);
 
-  fprintf(stderr, "'%s' -> %03d -- %s <> %s\n", id, idhash, fmpattern, topattern);
+  fts = strtimetotv(fm);
+  tts = strtimetotv(to);
+
+  printf("fm: '%s' %ld\n", fm, fts);
+  printf("to: '%s' %ld\n", to, tts);
+
+	if (verbose)
+		fprintf(stderr, "'%s' -> %03d -- %s <> %s\n", id, idhash, fmpattern, topattern);
+
   dn = scandir(PATH, &de, filter, versionsort);
 
-  for (i=0; i<dn; i++) {
-    fprintf(stderr, "%d - '%s'\n", i, de[i]->d_name);
+  char *prev = NULL;
 
-    dumpfile(stdout, de[i]->d_name, id);
+  for (i=0; i<dn; i++) {
+		if (verbose)
+			fprintf(stderr, "%d - '%s'\n", i, de[i]->d_name);
+
+		if (strcmp(de[i]->d_name, fmpattern) == -1) { /* older */
+			prev = de[i]->d_name;  /* store the name, because we need the file right before the queried interval */
+			continue;
+		} else if (strcmp(de[i]->d_name, topattern) ==  +1) { /* newer */
+			break; /* for() */
+		}
+
+    if (prev) { /* begin the queried interval with the previous file, do it only once! */
+      dumpfile(stdout, prev, id, fts, tts);
+			prev = NULL;
+		}
+
+    dumpfile(stdout, de[i]->d_name, id, fts, tts);
   }
+	if (prev) { /* print the nonprinted prev if there has not been found other (newer) files */
+		dumpfile(stdout, prev, id, fts, tts);
+	}
+
+  free(de);
 
 	return 0;
 }
