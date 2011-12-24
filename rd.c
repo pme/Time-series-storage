@@ -31,7 +31,7 @@
  * =====================================================================================
  */
 
-#define _XOPEN_SOURCE
+#define _XOPEN_SOURCE	500
 #define _GNU_SOURCE
 #include <stdlib.h>
 #include <stdio.h>
@@ -134,7 +134,7 @@ void dumpfile(FILE *out, char *fname, char *id, time_t fts, time_t tts)
   char path[132+1];
 
   snprintf(path, 132, PATH "/%s", fname);
-  fd = open(path, O_RDONLY);
+  fd = open(path, O_RDONLY|O_LARGEFILE);
 	assert(fd != -1);
 
 #ifdef USE_FLOCK
@@ -208,9 +208,6 @@ int main (int argc, char *argv[])
 
   fts = strtimetotv(fm);
   tts = strtimetotv(to);
-
-  printf("fm: '%s' %ld\n", fm, fts);
-  printf("to: '%s' %ld\n", to, tts);
 
 	if (verbose)
 		fprintf(stderr, "'%s' -> %03d -- %s <> %s\n", id, idhash, fmpattern, topattern);

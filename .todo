@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<todo version="0.1.20">
+    <note priority="medium" time="1324206336">
+        pr.c cores sometimes.
+    </note>
+    <note priority="medium" time="1324206452">
+        Human readable rd's output or parseable output
+    </note>
+    <note priority="medium" time="1324206488" done="1324718604">
+        largefile support
+        <comment>
+            Implemented.
+        </comment>
+    </note>
+</todo>

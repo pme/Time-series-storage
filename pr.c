@@ -31,7 +31,8 @@
  * =====================================================================================
  */
 
-#define _XOPEN_SOURCE
+#define _XOPEN_SOURCE	500
+#define _GNU_SOURCE
 #include <stdlib.h>
 #include <stdio.h>
 #include <limits.h>

@@ -30,6 +30,8 @@
  *
  */
 
+#define _XOPEN_SOURCE	500
+#define _GNU_SOURCE
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -102,7 +104,7 @@ struct ic * ICcreate(int nfiles, int itemsize, int nitem, char *path)
   for (i=0; i < ic->nfiles; i++) {
     if ((ic->fb[i].buf = calloc(nitem, itemsize)) == NULL) return NULL;
     snprintf(p, PATH_MAX, "%s/%s_%03d.dat", path, fname, i);
-    if ((ic->fb[i].fd = open(p, O_RDWR|O_CREAT|O_TRUNC, 0644)) == -1) return NULL;
+    if ((ic->fb[i].fd = open(p, O_RDWR|O_CREAT|O_TRUNC|O_LARGEFILE, 0644)) == -1) return NULL;
   }
 
   return ic;
