@@ -73,12 +73,21 @@ struct m * lineparser(char *line)
 	static struct m m;
 	char *p;
 
-	strncpy(m.id, strtok(line, "|"), 16);
+	if ((p = strtok(line, "|")) == NULL) return NULL;
+	strncpy(m.id, p, 16);
   m.id[16] = '\0';
-	m.ts.tv_sec  = atoi(strtok(NULL, "."));
-	m.ts.tv_usec = atoi(strtok(NULL, "|"));
-	m.val        = atof(strtok(NULL, "|"));
-	m.stat       = strtoul(strtok(NULL, "|") , &p, 16);
+
+  if ((p = strtok(NULL, ".")) == NULL) return NULL;
+	m.ts.tv_sec = atoi(p);
+
+  if ((p = strtok(NULL, "|")) == NULL) return NULL;
+	m.ts.tv_usec = atoi(p);
+
+  if ((p = strtok(NULL, "|")) == NULL) return NULL;
+	m.val = atof(p);
+
+  if ((p = strtok(NULL, "|")) == NULL) return NULL;
+	m.stat = strtoul(p, NULL, 16);
 
 	return &m;
 }
@@ -149,7 +158,7 @@ int main (int argc, char *argv[])
 
 			if (trace) fprintf(stdout, "line: %s\n", buf);
 
-			m = lineparser(buf);
+			if ((m = lineparser(buf)) == NULL) continue;
 			if (trace) printm(stdout, (char *)m);
 
 		  s = ICadd(ic, hash(m->id), (char *)m);
