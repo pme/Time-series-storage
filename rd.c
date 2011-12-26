@@ -65,20 +65,27 @@ int verbose;
 char idpattern[PATTERN_LEN+1];
 char *fmpattern;
 char *topattern;
+int human;
 
-void printm(FILE *f, struct m *m)
+void printm(FILE *f, struct m *m, int human)
 {
-	char ts[64+1];
+	if (human) {
+	  char ts[64+1];
 
-	strftime(ts, 64, "%Y-%m-%d %T", gmtime(&m->ts.tv_sec));
+	  strftime(ts, 64, "%Y-%m-%d %T", gmtime(&m->ts.tv_sec));
 
-	fprintf(f, "%s|%9ld.%06ld|%s.%06ld|%10.3f|0x%03x\n",
-			m->id,
-			m->ts.tv_sec,
-			m->ts.tv_usec,
-			ts, m->ts.tv_usec,
-			m->val,
-			m->stat);
+		fprintf(f, "%s '%s.%06ld' %10.3f 0x%03x\n",
+				m->id,
+				ts, m->ts.tv_usec,
+				m->val,
+				m->stat);
+	} else {
+		fprintf(f, "%s|%9ld.%06ld|%10.3f|0x%03x\n",
+				m->id,
+				m->ts.tv_sec, m->ts.tv_usec,
+				m->val,
+				m->stat);
+	}
 }
 
 int filter(const struct dirent *de)
@@ -99,11 +106,13 @@ char *space2underline(char *s)
 
 void usage(int argc, char *argv[])
 {
-	fprintf(stderr, "Usage: %s [-v] [-i id] [-f from] [-t to]\n", basename(argv[0]));
+	fprintf(stderr, "Usage: %s [-h] [-v] [-i id] [-f from] [-t to] [-H]\n", basename(argv[0]));
+	fprintf(stderr, "\t-h - Print this message to stdout\n");
 	fprintf(stderr, "\t-v - Verbose\n");
 	fprintf(stderr, "\t-i - Channel identifier\n");
 	fprintf(stderr, "\t-f - from timestamp\n");
 	fprintf(stderr, "\t-t - to timestamp\n");
+	fprintf(stderr, "\t-H - human readable output\n");
 	exit(EXIT_FAILURE);
 }
 
@@ -127,7 +136,7 @@ ssize_t readn(int fd, void *vptr, size_t n)
 	return n - nleft;		/* return >= 0 */
 }
 
-void dumpfile(FILE *out, char *fname, char *id, time_t fts, time_t tts)
+void dumpfile(FILE *out, char *fname, char *id, time_t fts, time_t tts, int human)
 {
   int fd;
   struct m m;
@@ -148,7 +157,7 @@ void dumpfile(FILE *out, char *fname, char *id, time_t fts, time_t tts)
   while (readn(fd, &m, sizeof(m))) {
 		if (!strcmp(id, m.id) &&
 			m.ts.tv_sec >= fts &&
-			m.ts.tv_sec <= tts) printm(out, &m);
+			m.ts.tv_sec <= tts) printm(out, &m, human);
   }
 
 #ifdef USE_FLOCK
@@ -177,7 +186,7 @@ int main (int argc, char *argv[])
   int dn, i, idhash;
 
 	to = fm = 0;
-	while ((opt = getopt(argc, argv, "i:f:t:vh")) != -1) {
+	while ((opt = getopt(argc, argv, "i:f:t:vHh")) != -1) {
 		switch (opt) {
 			case 'i':
 				id = optarg;
@@ -191,6 +200,10 @@ int main (int argc, char *argv[])
 			case 'v':
 				verbose = 1;
 				break;
+			case 'H':
+				human = 1;
+				break;
+			case 'h':
 			default: /* '?' */
         usage(argc, argv);
 		}
@@ -228,14 +241,14 @@ int main (int argc, char *argv[])
 		}
 
     if (prev) { /* begin the queried interval with the previous file, do it only once! */
-      dumpfile(stdout, prev, id, fts, tts);
+      dumpfile(stdout, prev, id, fts, tts, human);
 			prev = NULL;
 		}
 
-    dumpfile(stdout, de[i]->d_name, id, fts, tts);
+    dumpfile(stdout, de[i]->d_name, id, fts, tts, human);
   }
 	if (prev) { /* print the nonprinted prev if there has not been found other (newer) files */
-		dumpfile(stdout, prev, id, fts, tts);
+		dumpfile(stdout, prev, id, fts, tts, human);
 	}
 
   free(de);
