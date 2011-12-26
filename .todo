@@ -1,15 +1,27 @@
 <?xml version="1.0"?>
 <todo version="0.1.20">
-    <note priority="medium" time="1324206336">
+    <note priority="medium" time="1324206336" done="1324929775">
         pr.c cores sometimes.
+        <comment>
+            Fixed, invalid lines (eg. empty) caused the problem.
+        </comment>
     </note>
-    <note priority="medium" time="1324206452">
+    <note priority="medium" time="1324206452" done="1324929806">
         Human readable rd's output or parseable output
+        <comment>
+            Done, -H switch in rd.
+        </comment>
     </note>
     <note priority="medium" time="1324206488" done="1324718604">
         largefile support
         <comment>
             Implemented.
+        </comment>
+    </note>
+    <note priority="medium" time="1324720587" done="1324929824">
+        Network input via telnetd/xinetd
+        <comment>
+            id, inetd handler was added.
         </comment>
     </note>
 </todo>
