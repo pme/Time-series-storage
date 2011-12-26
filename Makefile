@@ -31,7 +31,7 @@
 # =====================================================================================
 #
 
-PROGRAMS = dg pr rd
+PROGRAMS = dg pr rd id
 CFLAGS = -Wall -g -DUSE_FLOCK
 LDFLAGS = -lm
 
@@ -52,5 +52,8 @@ pr: pr.c ic.c mh.c
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 rd: rd.c mh.c
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+
+id: id.c
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
