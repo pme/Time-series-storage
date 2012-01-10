@@ -4,6 +4,8 @@ dg
 pr
 rd
 id
+scandir
+numfiles
 readn
 writen
 ictest

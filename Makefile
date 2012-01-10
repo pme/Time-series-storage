@@ -31,7 +31,7 @@
 # =====================================================================================
 #
 
-PROGRAMS = dg pr rd id
+PROGRAMS = dg pr rd id numfiles scandir
 CFLAGS = -Wall -g -DUSE_FLOCK
 LDFLAGS = -lm
 
@@ -57,3 +57,8 @@ rd: rd.c mh.c
 id: id.c
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
+numfiles: numfiles.c
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+
+scandir: scandir.c
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
