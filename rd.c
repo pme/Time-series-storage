@@ -66,6 +66,7 @@ char idpattern[PATTERN_LEN+1];
 char *fmpattern;
 char *topattern;
 int human;
+char *datapath = PATH;
 
 void printm(FILE *f, struct m *m, int human)
 {
@@ -106,13 +107,15 @@ char *space2underline(char *s)
 
 void usage(int argc, char *argv[])
 {
-	fprintf(stderr, "Usage: %s [-h] [-v] [-i id] [-f from] [-t to] [-H]\n", basename(argv[0]));
+	fprintf(stderr, "Usage: %s [-h] [-v] [-H] [-p datapath]\n", basename(argv[0]));
 	fprintf(stderr, "\t-h - Print this message to stdout\n");
 	fprintf(stderr, "\t-v - Verbose\n");
-	fprintf(stderr, "\t-i - Channel identifier\n");
-	fprintf(stderr, "\t-f - from timestamp\n");
-	fprintf(stderr, "\t-t - to timestamp\n");
 	fprintf(stderr, "\t-H - human readable output\n");
+	fprintf(stderr, "\t-p - datapath\n");
+	fprintf(stderr, "\tstdin format:\n");
+	fprintf(stderr, "\t00Jigqdb0KzK|2012-01-10 11:30:00|2012-01-10 12:00:00\n");
+	fprintf(stderr, "\t-identifier-|--from timestamp---|---to timestamp----\n");
+
 	exit(EXIT_FAILURE);
 }
 
@@ -142,7 +145,7 @@ void dumpfile(FILE *out, char *fname, char *id, time_t fts, time_t tts, int huma
   struct m m;
   char path[132+1];
 
-  snprintf(path, 132, PATH "/%s", fname);
+  snprintf(path, 132, "%s/%s", datapath, fname);
   fd = open(path, O_RDONLY|O_LARGEFILE);
 	assert(fd != -1);
 
@@ -184,18 +187,13 @@ int main (int argc, char *argv[])
 	time_t fts, tts;
   struct dirent **de = NULL;
   int dn, i, idhash;
+	char line[256];
 
 	to = fm = 0;
-	while ((opt = getopt(argc, argv, "i:f:t:vHh")) != -1) {
+	while ((opt = getopt(argc, argv, "p:vHh")) != -1) {
 		switch (opt) {
-			case 'i':
-				id = optarg;
-				break;
-			case 't':
-				to = optarg;
-				break;
-			case 'f':
-				fm = optarg;
+			case 'p':
+				datapath = optarg;
 				break;
 			case 'v':
 				verbose = 1;
@@ -208,8 +206,11 @@ int main (int argc, char *argv[])
         usage(argc, argv);
 		}
 	}
-  if (id == NULL || fm == NULL || to == NULL)
-		usage(argc, argv);
+
+	if ((fgets(line, 256, stdin)) == NULL) usage(argc, argv);
+	if ((id = strtok(line, "|")) == NULL) usage(argc, argv);
+	if ((fm = strtok(NULL, "|")) == NULL) usage(argc, argv);
+	if ((to = strtok(NULL, "|")) == NULL) usage(argc, argv);
 
   /* ------------------------------------------------------ */
 
@@ -223,9 +224,10 @@ int main (int argc, char *argv[])
   tts = strtimetotv(to);
 
 	if (verbose)
-		fprintf(stderr, "'%s' -> %03d -- %s <> %s\n", id, idhash, fmpattern, topattern);
+		fprintf(stderr, "'%s' directory: '%s' -> %03d -- %s <> %s\n", datapath, id, idhash, fmpattern, topattern);
 
-  dn = scandir(PATH, &de, filter, versionsort);
+  dn = scandir(datapath, &de, filter, versionsort);
+	if (dn < 0) err(EXIT_FAILURE, "scandir(%s)", datapath);
 
   char *prev = NULL;
 
