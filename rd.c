@@ -253,6 +253,8 @@ int main (int argc, char *argv[])
 		dumpfile(stdout, prev, id, fts, tts, human);
 	}
 
+  while (dn--)
+		free(de[dn]);
   free(de);
 
 	return 0;
