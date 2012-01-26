@@ -51,7 +51,6 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/file.h>
-#include <assert.h>
 
 #include "pr.h"
 #include "mh.h"
@@ -139,15 +138,23 @@ ssize_t readn(int fd, void *vptr, size_t n)
 	return n - nleft;		/* return >= 0 */
 }
 
+/*
+ * fname == NULL -- just return
+ * id    == NULL -- all id
+ * fts   == 0    -- from the epoch
+ * tts   == 0    -- till now and even the future ;)
+ */
 void dumpfile(FILE *out, char *fname, char *id, time_t fts, time_t tts, int human)
 {
   int fd;
   struct m m;
   char path[132+1];
 
+  if (!fname) return;
+
   snprintf(path, 132, "%s/%s", datapath, fname);
   fd = open(path, O_RDONLY|O_LARGEFILE);
-	assert(fd != -1);
+	err(EXIT_FAILURE, "open(%s)", path);
 
 #ifdef USE_FLOCK
   if (flock(fd, LOCK_SH) < 0) {
@@ -158,9 +165,9 @@ void dumpfile(FILE *out, char *fname, char *id, time_t fts, time_t tts, int huma
 #endif
 
   while (readn(fd, &m, sizeof(m))) {
-		if (!strcmp(id, m.id) &&
-			m.ts.tv_sec >= fts &&
-			m.ts.tv_sec <= tts) printm(out, &m, human);
+		if ((!id  || !strcmp(id, m.id)) &&
+			  (!fts || (m.ts.tv_sec >= fts)) &&
+			  (!tts || (m.ts.tv_sec <= tts))) printm(out, &m, human);
   }
 
 #ifdef USE_FLOCK
