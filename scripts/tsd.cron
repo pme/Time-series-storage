@@ -1,0 +1,8 @@
+#!/bin/sh
+#
+# Copy this file to eg. /etc/cron.daily/
+# The pr will open new fileset everyday.
+#
+
+killall -s USR1 pr
+
