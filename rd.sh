@@ -14,6 +14,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-#./rd $1 -i 00Jigqdb0KzK -f "2011-11-06 00:19:00" -t "2011-11-07 00:20:00"
-#./rd $1 -i 00Jigqdb0KzK -f "2011-12-11 19:30:00" -t "2011-12-11 20:00:00"
-echo "00Jigqdb0KzK|2012-01-10 11:30:00|2012-01-10 12:00:00" | ./rd $1
+#echo "xxx|0|0" | ./rd $1
+
+#echo "00Jigqdb0KzK|2012-02-12 15:20:23|2012-02-12 16:20:14" | ./rd $1
+echo "00Jigqdb0KzK|2012-02-12 15:20:23|2012-02-12 16:20:14" | nc localhost tsdr
+
+

@@ -67,6 +67,8 @@ char *topattern;
 int human;
 char *datapath = PATH;
 
+char epochstr[] = "1970-01-01 00:00:00";
+
 void printm(FILE *f, struct m *m, int human)
 {
 	if (human) {
@@ -153,8 +155,8 @@ void dumpfile(FILE *out, char *fname, char *id, time_t fts, time_t tts, int huma
   if (!fname) return;
 
   snprintf(path, 132, "%s/%s", datapath, fname);
-  fd = open(path, O_RDONLY|O_LARGEFILE);
-	err(EXIT_FAILURE, "open(%s)", path);
+  if ((fd = open(path, O_RDONLY|O_LARGEFILE)) == -1) 
+	  err(EXIT_FAILURE, "open(%s)", path);
 
 #ifdef USE_FLOCK
   if (flock(fd, LOCK_SH) < 0) {
@@ -195,6 +197,7 @@ int main (int argc, char *argv[])
   struct dirent **de = NULL;
   int dn, i, idhash;
 	char line[256];
+	char *p;
 
 	to = fm = 0;
 	while ((opt = getopt(argc, argv, "p:vHh")) != -1) {
@@ -214,10 +217,18 @@ int main (int argc, char *argv[])
 		}
 	}
 
+	for (i=optind; i<argc; i++) {
+    dumpfile(stdout, argv[i], NULL, 0, 0, 0);
+	}
+	if (optind < argc) exit(EXIT_SUCCESS);
+
 	if ((fgets(line, 256, stdin)) == NULL) usage(argc, argv);
+  if ((p = strrchr(line, '\n'))) *p = '\0';
 	if ((id = strtok(line, "|")) == NULL) usage(argc, argv);
 	if ((fm = strtok(NULL, "|")) == NULL) usage(argc, argv);
 	if ((to = strtok(NULL, "|")) == NULL) usage(argc, argv);
+	if (*fm == '0') fm = epochstr;
+	if (*to == '0') to = epochstr;
 
   /* ------------------------------------------------------ */
 
@@ -231,7 +242,8 @@ int main (int argc, char *argv[])
   tts = strtimetotv(to);
 
 	if (verbose)
-		fprintf(stderr, "'%s' directory: '%s' -> %03d -- %s <> %s\n", datapath, id, idhash, fmpattern, topattern);
+		fprintf(stderr, "'%s' directory: '%s' -> %03d -- %s/%ld <> %s/%ld\n",
+		    datapath, id, idhash, fmpattern, fts, topattern, tts);
 
   dn = scandir(datapath, &de, filter, versionsort);
 	if (dn < 0) err(EXIT_FAILURE, "scandir(%s)", datapath);
